@@ -88,13 +88,13 @@ curly brackets."
   (cond
     ((null language) phrase)
     (T (ensure-language language T)
-       (with-language language (dict missing missing-fn)
+       (with-language language (dictionary missing missing-fn)
           (declare (ignore missing))
           (multiple-value-bind (result found?)
               (gethash phrase dictionary
                        (funcall missing-fn phrase))
             (unless found?
-              (pushnew phrase (second lang) :test 'equal)
+              (pushnew phrase missing :test 'equal)
               (warn "Phrase \"~A\" isn't defined for language ~A."
                     phrase language))
             result)))))
