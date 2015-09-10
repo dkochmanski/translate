@@ -264,7 +264,7 @@
    application is running. Load-time translation is more suitable for
    static translations for deployed applications or where macros
    prevent necessary evaluation of the expressions. Also when the
-   programmer wants to add translations in the future (if language is
+   programmer wants to add translations in future (if language is
    bound to nil and resolution is performed at load-time the
    expression =#t="hello world" means the same as the "hello world").
 
