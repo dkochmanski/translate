@@ -161,7 +161,7 @@
    available. It returns a list of the form ={((LANG (PHRASES*))*)}=.
 
    #+BEGIN_SRC lisp
-     ==> (missing-translations)
+     ==> (translate:missing-translations)
      ((PL ("phrase-1" "phrase-2" "phrase-3"))
       (BG ("phrase-1" "phrase-3")))
    #+END_SRC
@@ -221,7 +221,7 @@
 
    #+BEGIN_SRC lisp
      ==> (setf translate:*resolution-time* :load-time)
-     :RUN-TIME
+     :LOAD-TIME
 
      ==> (setf translate:*language* :en)
      :EN
