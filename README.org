@@ -49,7 +49,7 @@
      #<button "hello">
    #+END_SRC
 
-   Binding =TRANSLATE:*LANGUAGE*= toa non-NIL value enables string
+   Binding =TRANSLATE:*LANGUAGE*= to a non-NIL value enables string
    translation. If no translation exists it will be temporarily
    translated to the same value enclosed in a curly brackets:
 
@@ -76,8 +76,8 @@
    put in the =TRANSLATE:*LANGUAGE*= isn't defined yet, =CERROR= will
    be signaled with a restart allowing language creation.
 
-   To distinguish dictionaries, th predicate =EQL= is used and phrases
-   are distinguished using the predicate =EQUAL=, so the most
+   To distinguish dictionaries, the predicate =EQL= is used and
+   phrases are distinguished using the predicate =EQUAL=, so the most
    convenient is using symbols as the language designators. It also
    implies, that phrases meant for translation are case sensitive.
 
