@@ -231,10 +231,10 @@
      ;;; Warning: phrase "hello" isn't defined for language EN.
      *MY-FUNCTION-1*
 
-     ==> (translate:add-translation :en "hello" "Hello")
+     ==> (translate:add-single-translation :en "hello" "Hello")
      hello -> Hello (EN)
 
-     ==> (translate:add-translation :pl "hello" "Cześć")
+     ==> (translate:add-single-translation :pl "hello" "Cześć")
      hello -> Cześć (PL)
 
      ==> (let ((*language* :en))
