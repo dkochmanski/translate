@@ -1,67 +1,73 @@
 
-(require 'rt)
-(require 'translate)
-
 (defpackage #:translate/test
-  (:use #:cl #:rt))
+  (:use #:cl #:5am #:translate))
 
 (in-package :translate/test)
 
- ;; translations when language is bound to NIL
+(def-suite :translate-tests :description "Tests for translate library.")
+(in-suite :translate-tests)
 
-(setf translate:*resolution-time* :run-time)
+ ;; Fixtures
+(def-fixture time/lang (time lang)
+  "Creates null translation environment with specified resolution time
+and language"
+  (let ((translate::*translations*   nil)
+        (translate:*resolution-time* time)
+        (translate:*language*        lang))
+    (&body)))
 
-(deftest translate.nil-lang.1
-    (apply #'values
-           (let ((translate:*language* nil))
-             (mapcar #'(lambda (x y) (or (equal x y)
-                                         (list  x y)))
-                     (list #t"phrase-1" #t"phrase-2" #t"phrase-3")
-                     (list   "phrase-1"   "phrase-2"   "phrase-3"))))
-  T T T)
+ ;; dispatch macro character tests
 
-(deftest translate.nil-lang.2
-    (apply #'values
-           (let ((translate:*language* nil))
-           (mapcar #'(lambda (x y) (and (equal x y)
-                                        (list  x y)))
-                   '(#t"phrase-1" #t"phrase-2" #t"phrase-3")
-                   '(  "phrase-1"   "phrase-2"   "phrase-3"))))
-  NIL NIL NIL)
-
-(setf translate:*language* nil
-      translate:*resolution-time* :load-time)
-
-(deftest translate.nil-lang.3
-    (apply #'values
-           (mapcar #'(lambda (x y) (or (equal x y)
-                                         (list  x y)))
-                   (list #t"phrase-1" #t"phrase-2" #t"phrase-3")
-                   (list   "phrase-1"   "phrase-2"   "phrase-3")))
-  T T T)
-
-(deftest translate.nil-lang.4
-    (apply #'values
-           (mapcar #'(lambda (x y) (or (equal x y)
-                                         (list  x y)))
-                   '(#t"phrase-1" #t"phrase-2" #t"phrase-3")
-                   '(  "phrase-1"   "phrase-2"   "phrase-3")))
-  T T T)
+(test resolution-time.reader
+      "Test dispatch macro character with different resolution times"
+      (with-fixture time/lang (:run-time nil)
+                    (is (equal "phrase"
+                               (eval (read-from-string "#t\"phrase\""))))
+                    (is (equal '(translate:translate "phrase")
+                               (read-from-string "#t\"phrase\""))))
+      (with-fixture time/lang (:load-time nil)
+                    (is (equal "phrase"
+                               (read-from-string "#t\"phrase\""))))
+      (signals simple-type-error
+               (read-from-string "#t bah")))
 
  ;; translations for defined language
 
-(setf translate:*resolution-time* :run-time)
+(test translation.language
+      "Test single language definition"
+      (with-fixture time/lang (:run-time 'en)
+                    (translate:define-language 'en
+                        "phrase-1" "Phrase one")
+                    (is (equal "Phrase one" #t"phrase-1"))
+                    (is (equal "{phrase-2}" #t"phrase-2"))
+                    (is (equal "Phrase two"
+                               (add-single-translation
+                                'en "phrase-2" "Phrase two")))
+                    (is (equal "Phrase two" #t"phrase-2"))))
 
-(translate:define-language 'en
-    "phrase-1" "Phrase one")
+(test translation.lexically-scoped-languages
+      (with-fixture time/lang (:run-time nil)
+                    (translate:define-language 'en
+                        "phrase" "Phrase")
+                    (translate:define-language 'pl
+                        "phrase" "Fraza")
+                    (is (equal "phrase" #t"phrase"))
+                    (is (equal "Phrase"
+                               (let ((*language* 'en))
+                                 #t"phrase")))
+                    (is (equal "Fraza"
+                               (let ((*language* 'pl))
+                                 #t"phrase")))))
 
-(deftest translate.en-lang.1
-    (apply #'values
-           (let ((translate:*language* 'en))
-             (mapcar #'(lambda (x y) (or (equal x y)
-                                         (list  x y)))
-                     (list #t"phrase-1"   #t"phrase-2" #t"phrase-3")
-                     (list   "Phrase one"  "{phrase-2}" "{phrase-3}"))))
-  T T T)
+(test translation.missing-phrases
+      "Test single language definition"
+      (with-fixture time/lang (:run-time 'en)
+                    (translate:define-language 'en)
+                    (is (equal "{phrase}" #t"phrase"))
+                    (is (missing-translations))
+                    (is (equal "Phrase"
+                               (add-single-translation
+                                'en "phrase" "Phrase")))
+                    (is (null (missing-translations)))))
 
 

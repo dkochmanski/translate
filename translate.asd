@@ -10,5 +10,13 @@
   :serial t
   :depends-on ()
   :components ((:file "package")
-               (:file "translate")))
+               (:file "translate"))
+  :in-order-to ((asdf:test-op
+                 (asdf:test-op #:translate/test))))
 
+(asdf:defsystem #:translate/test
+  :depends-on (#:translate #:fiveam)
+  :components ((:file "tests"))
+  :perform (asdf:test-op (o s)
+             (funcall (intern (string '#:run!) :translate/test)
+                      :translate-tests)))
