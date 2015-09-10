@@ -36,13 +36,16 @@ corresponding objects."
 If LANGUAGE doesn't exist, it is implicitly created and a warning is
 emmited."
   (check-type phrase string)
-  (let ((dict (car (or (getf *translations* language)
-                       (progn
-                         (warn "Implicitly creating language ~A." language)
-                         (define-language language)
-                         (getf *translations* language))))))
+  (symbol-macrolet ((lang-entry (getf *translations* language)))
+    (unless lang-entry
+      (warn "Implicitly creating language ~A." language)
+      (define-language language))
     (format t "[~a] ~a -> ~a~%" language phrase translation)
-    (setf (gethash phrase dict) translation)))
+    (setf (second lang-entry) (remove phrase
+                                      (second lang-entry)
+                                      :test #'equal
+                                      :count 1)
+          (gethash phrase (first lang-entry)) translation)))
 
 (defun add-translations (language &rest translations)
   "Add any number of TRANSLATIONS for the given LANGUAGE"
