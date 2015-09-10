@@ -1,0 +1,319 @@
+
+* Introduction
+
+  =TRANSLATE= is a thin abstraction layer over the ordinary strings
+  which allows creation of a seamless translation for your
+  project. Code is written in a plain Common Lisp without any
+  dependencies. System definition is provided in =ASD= format,
+  although =ASDF= isn't required to run this software.
+
+  Library is licensed under =LLGPLv2=, what means that it may be used
+  in any project for any purpose although any significant
+  modifications to the library should be published. It doesn't impose
+  it's license on software depending on it.
+
+  To illustrate library usage some imaginary functions are used:
+  =MAKE-BUTTON= and =MAKE-LABEL=. The following sample code convention
+  is used:
+
+  - lines predated with ==> indicate *reader* input
+  - all other lines represent *printer* output
+
+* Description
+
+** Basic usage
+
+   Library pollutes =*READTABLE*= with dispatch macro character =#t=,
+   where "t" is abbreviation of "translate". User instead of writing
+   bare strings in his/her application, predates them with =#t=:
+
+   #+BEGIN_SRC common-lisp
+     ==> #t"dum dum, piję rum"
+     "la la, I drink in the spa"
+   #+END_SRC
+
+   If =TRANSLATE:*LANGUAGE*= is bound to =NIL= and
+   =TRANSLATE:*RESOLUTION-TIME*= to =:LOAD-TIME=, then =#t="hello" will
+   resolve to the string "hello" and translation will have no
+   effect. It is convenient, because programmer can put =#t="strings"
+   for the future translation with no functional consequences at the
+   run-time while keeping application innards visually separated from
+   the messages meant to be presented to user.
+
+   #+BEGIN_SRC common-lisp
+     ==> (setf translate:*language* nil)
+     ==> (make-button :label #t"hello")
+     #<button "hello">
+   #+END_SRC
+
+   Binding =TRANSLATE:*LANGUAGE*= to non-NIL value enables string
+   translation. If no translation exists it will be temporarily
+   translated to the same value enclosed in a curly brackets:
+
+   #+BEGIN_SRC common-lisp
+     ==> (translate:define-language :pl)
+     (#<hash-table 00000000054323c0> NIL #<compiled-function 0000000005fe08c0>)
+     ==> (setf translate:*language* :pl)
+     :PL
+     ==> (make-label :text #t"Greetings, programs")
+     ;;; Warning: phrase "Greetings, programs" isn't defined for language :PL.
+     #<label "{Greetings, programs}">
+     ==> (make-label :text #t"Leave the grid")
+     ;;; Warning: phrase "Leave the grid" isn't defined for language :PL.
+     #<label "{Leave the grid}">
+   #+END_SRC
+
+   Using not translated string will cause a warning at the resolution
+   time and string will be added to the special list of phrases not
+   yet translated (which may be evaluated for the future processing,
+   like adding the missing translations). If a language put in the
+   =TRANSLATE:*LANGUAGE*= isn't defined yet, =CERROR= will be
+   signalled with a restart allowing language creation.
+
+   To distinguish dictionaries predicate =EQL= is used and phrases are
+   distinguished using predicate =EQUAL=, so the most convenient is
+   using symbols as the language designators. It also implies, that
+   phrases meant for translation are case sensitive.
+
+** Adding translation  
+
+   To add translations two interfaces are
+   provided. =ADD-SINGLE-TRANSLATION= function takes three arguments,
+   where the first is the language for which we provide translation,
+   the second is a translated phrase and the third is an actual
+   translation. Phrase type must be a string, but the translation
+   might be any kind of object (although it is advised to use strings
+   user is free to shoot himself in the foot by abusing the
+   translation mechanism).
+
+   #+BEGIN_SRC lisp
+     ==> (translate:add-single-translation 'pl "hello" "Witaj!")
+     ;;; Warning: Implicitly creating language PL.
+     [PL] hello -> Witaj!
+     "Witaj!"
+     ==> (translate:add-single-translation 'en "hello" "Welcome!")
+     ;;; Warning: Implicitly creating language EN.
+     [EN] hello -> Welcome!
+     "Welcome!"
+     ==> (translate:add-single-translation
+          'pl "bang"
+          (let ((i 1))
+            (lambda ()
+              (format nil "bah ~A" (incf i)))))
+     bang -> #<bytecompiled-closure #<bytecompiled-function 00000000067d9f50>> (PL)
+     #<bytecompiled-closure #<bytecompiled-function 00000000067d9f50>>
+   #+END_SRC
+   
+   =ADD-TRANSLATIONS= is a simple wrapper around
+   =ADD-SINGLE-TRANSLATION= that allows translating multiple phrases
+   in one form. The first argument is once again the translation
+   language, while all further arguments are alternately phrases and
+   translations.
+
+   #+BEGIN_SRC lisp
+     ==> (translate:add-translations 'pl
+            "header-about"   "O firmie"
+            "header-offer"   "Oferta"
+            "header-blog"    "Blog"
+            "header-pricing" "Cennik"
+            "header-contact" "Kontakt")
+     [PL] header-about -> O firmie
+     [PL] header-offer -> Oferta
+     [PL] header-blog -> Blog
+     [PL] header-pricing -> Cennik
+     [PL] header-contact -> Kontakt
+     T
+     ==> (translate:add-translations 'en
+            "header-about"   "About"
+            "header-offer"   "Offer"
+            "header-blog"    "Blog"
+            "header-pricing" "Prices"
+            "header-contact" "Contact")
+     [EN] header-about -> About
+     [EN] header-offer -> Offer
+     [EN] header-blog -> Blog
+     [EN] header-pricing -> Prices
+     [EN] header-contact -> Contact
+     T
+   #+END_SRC
+
+   Generally it is advised to use symbolic and meaningful names for
+   phrases to be translated, not the final phrases written in English.
+   Providing "translation-tags" of concise form is easier to
+   comprehend for people, who will translate the application.
+
+** Interactive fixing of the missing phrases
+
+   Loading the code is enough to catch all not yet translated phrases
+   for the active language (bound to =TRANSLATE:*LANGUAGE*=) if
+   resolution is performed at load time. Otherwise not translated
+   phrase is saved after it's first evaluation. To list saved phrases
+   without translations function =MISSING-TRANSLATIONS= is
+   available. It returns a list of form ={((LANG (PHRASES*))*)}=.
+
+   #+BEGIN_SRC lisp 
+     ==> (missing-translations)
+     ((PL ("phrase-1" "phrase-2" "phrase-3"))
+      (BG ("phrase-1" "phrase-3")))
+   #+END_SRC
+
+   Such output means, that language =PL= doesn't have translations for
+   "phrase-1", "phrase-2" and "phrase-3", while =BG= doesn't have
+   translations for "phrase-1" and "phrase-3". Languages, which have
+   all translations are filtered and they don't appear in the result.
+
+** Different times of the resolution
+
+   Library may work in two different modes which dictate time, when
+   the actual translation is performed. Strings may be translated at
+   the load-time, or at the run-time.
+
+   First approach is faster, because it doesn't require any processing
+   at the run-time, while the second is much more flexible allowing
+   changing dictionaries and translations when the program is running
+   or per- lexical scope basis.
+
+   It is important to remember, that when translations are done at the
+   run-time, strings predated by =#t= are transformed to function calls
+   and they may work not as expected in the context, where enclosing
+   macro prevents their evaluation.
+
+   #+BEGIN_SRC common-lisp
+     ==> (setf translate:*mode* :run-time)
+     :RUN-TIME
+     ==> (setf translate:*language* :en)
+     :EN
+     ==> (translate:add-single-translation :en "hello" "Hello")
+     [EN] hello -> Hello
+     ==> (translate:add-single-translation :pl "hello" "Cześć")
+     [PL] hello -> Cześć
+     ==> (let ((translate:*language* :en))
+           #t"hello")
+     "Hello"
+     ==> (let ((translate:*language* :pl))
+           #t"hello")
+     "Cześć"
+     ==> (quote #t"hello")
+     (TRANSLATE:TRANSLATE "hello")
+   #+END_SRC
+
+   When translation is performed at the load-time it has to be present
+   before actual phrase is used (i.e. in lambda expression), because
+   phrases are resolved to their translations immediately. That also
+   means, that changing =*LANGUAGE*= in the future won't affect
+   translations resolved earlier.
+
+   #+BEGIN_SRC common-lisp
+     ==> (setf translate:*mode* :load-time)
+     :RUN-TIME
+     ==> (setf translate:*language* :en)
+     :EN
+     ==> (defparameter *my-function-1*
+           (lambda () #t"hello"))
+     ;;; Warning: phrase "hello" isn't defined for language EN.
+     ,*MY-FUNCTION-1*
+     ==> (translate:add-translation :en "hello" "Hello")
+     hello -> Hello (EN)
+     ==> (translate:add-translation :pl "hello" "Cześć")
+     hello -> Cześć (PL)
+     ==> (let ((*language* :en))
+           #t"hello")
+     "Hello"
+     ==> (let ((*language* :pl))              ; lexical scope is ignored
+           #t"hello")
+     "Hello"
+     ==> (defparameter *my-function-2*
+           (lambda () #t"hello"))
+     ,*MY-FUNCTION-2*
+     ==> (funcall *my-function-1*) ; phrase wasn't translated when function was created
+     "{hello}"
+     ==> (funcall *my-function-2*)
+     "Hello"
+     ==> (quote #t"hello")
+     "Hello"
+   #+END_SRC
+
+   Translation at run-time is better when programmer wants to add
+   translations ad-hoc or wants to switch languages when application
+   is running. Load-time translation is more suitable for static
+   translations for deployed applications or where macros prevent
+   necessary evaluation of the expressions. Also when programmer wants
+   to add translations in the future (if language is bound to nil and
+   resolution is performed at load-time the expression =#t="hello
+   world" means the same as the "hello world".
+
+* Reference
+** Parameters
+*** *LANGUAGE*
+    This variable holds the current language designator (predicate
+    used for comparison is =EQL=). If bound to =NIL=, translation
+    works the same way as =IDENTITY= function.
+
+*** *RESOLUTION-TIME
+    Applicable values are =:LOAD-TIME= and =:RUN-TIME= (the latter is
+    default). The variable controls time of actual resolution.
+
+    If it's the =:LOAD-TIME=, then resolution is performed when the
+    reader encounters =#t= dispatch macro character, while setting the
+    variable to =:RUN-TIME= translates =#t="string" to form
+    =(TRANSLATE "string")= and resolution takes place at the time of
+    the form evaluation.
+
+** Functions
+*** DEFINE-LANGUAGE
+    #+BEGIN_SRC text
+      DEFINE-LANGUAGE - external symbol in TRANSLATE package
+      -----------------------------------------------------------------------------
+      DEFINE-LANGUAGE (NAME &REST TRANSLATIONS)                          [Function]
+      Define language NAME with provided TRANSLATIONS
+
+      If LANGUAGE exists continuable error is signalled, which allows either
+      dropping the operation or superseeding already defined language.
+      TRANSLATIONS are alternatery phrases and their corresponding objects.
+      -----------------------------------------------------------------------------
+    #+END_SRC
+
+*** ADD-SINGLE-TRANSLATION
+    #+BEGIN_SRC text
+      ADD-SINGLE-TRANSLATION - external symbol in TRANSLATE package
+      -----------------------------------------------------------------------------
+      ADD-SINGLE-TRANSLATION (LANGUAGE PHRASE TRANSLATION)               [Function]
+      Add TRANSLATION of PHRASE for given LANGUAGE
+
+      If LANGUAGE doesn't exist it is implicitly created and the warning is
+      emited.
+      -----------------------------------------------------------------------------
+    #+END_SRC
+
+*** ADD-TRANSLATIONS
+    #+BEGIN_SRC text
+      ADD-TRANSLATIONS - external symbol in TRANSLATE package
+      -----------------------------------------------------------------------------
+      ADD-TRANSLATIONS (LANGUAGE &REST TRANSLATIONS)                     [Function]
+      Add any number of TRANSLATIONS for given LANGUAGE
+      -----------------------------------------------------------------------------
+    #+END_SRC
+
+*** TRANSLATE
+    #+BEGIN_SRC text
+      TRANSLATE - external symbol in TRANSLATE package
+      -----------------------------------------------------------------------------
+      TRANSLATE (PHRASE &OPTIONAL (LANGUAGE *LANGUAGE*))                 [Function]
+      Find translation of PHRASE in the store associated with LANGUAGE
+
+      If LANGUAGE is NIL, then this is the same as the IDENTITY function. If
+      provided LANGUAGE isn't defined the store is explicitly created. If no
+      PHRASE is defined for a given language, it is stored for later
+      translation and replaced by PHRASE surrunded by curly brackets.
+      -----------------------------------------------------------------------------
+    #+END_SRC
+
+*** MISSING-TRANSLATIONS
+    #+BEGIN_SRC text
+      MISSING-TRANSLATIONS - external symbol in TRANSLATE package
+      -----------------------------------------------------------------------------
+      MISSING-TRANSLATIONS                                               [Function]
+      Creates list of phrases which aren't translated for defined
+      languages. Retruns list of form: ({(LANG ({PHRASE}*))}*)
+      -----------------------------------------------------------------------------
+    #+END_SRC
