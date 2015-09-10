@@ -34,7 +34,7 @@ and language"
  ;; translations for defined language
 
 (test translation.language
-      "Test single language definition"
+      "Single language definition"
       (with-fixture time/lang (:run-time 'en)
                     (translate:define-language 'en
                         "phrase-1" "Phrase one")
@@ -46,6 +46,7 @@ and language"
                     (is (equal "Phrase two" #t"phrase-2"))))
 
 (test translation.lexically-scoped-languages
+      "Multiple languages per lexical scope"
       (with-fixture time/lang (:run-time nil)
                     (translate:define-language 'en
                         "phrase" "Phrase")
@@ -60,7 +61,7 @@ and language"
                                  #t"phrase")))))
 
 (test translation.missing-phrases
-      "Test single language definition"
+      "Missing phrases removal"
       (with-fixture time/lang (:run-time 'en)
                     (translate:define-language 'en)
                     (is (equal "{phrase}" #t"phrase"))
