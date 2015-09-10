@@ -30,22 +30,41 @@ corresponding objects."
                                "{" str "}"))))
   (apply #'add-translations name translations))
 
+(defmacro with-language (name (dict miss m-fn) &body body)
+  "Conveniance macro which creates lexical invironment composed of
+  macro symbols which resolve to language list."
+  (let ((lang-entry (gensym)))
+    `(symbol-macrolet ((,lang-entry (getf *translations* ,name))
+                       (,dict (first  ,lang-entry))
+                       (,miss (second ,lang-entry))
+                       (,m-fn (third  ,lang-entry)))
+       ,@body)))
+
+(defun ensure-language (name &optional cerror-p)
+  "If NAME isn't NIL and language doesn't exist - define it. If
+  CERROR-P non-NIL, then signal a condition if it doesn't exist,
+  otherwise just emmit a warning."
+  (when name
+    (with-language name (dict miss m-fn)
+      (unless dict
+        (if cerror-p
+            (cerror "Create language."
+                    "Language ~A doesn't exist." name)
+            (warn "Implicitly creating language ~A." name))
+        (define-language name)))))
+
 (defun add-single-translation (language phrase translation)
   "Add TRANSLATION of PHRASE for given LANGUAGE
 
 If LANGUAGE doesn't exist, it is implicitly created and a warning is
 emmited."
   (check-type phrase string)
-  (symbol-macrolet ((lang-entry (getf *translations* language)))
-    (unless lang-entry
-      (warn "Implicitly creating language ~A." language)
-      (define-language language))
+  (ensure-language language)
+  (with-language language (dict miss miss-fn)
+    (declare (ignore miss-fn))
     (format t "[~a] ~a -> ~a~%" language phrase translation)
-    (setf (second lang-entry) (remove phrase
-                                      (second lang-entry)
-                                      :test #'equal
-                                      :count 1)
-          (gethash phrase (first lang-entry)) translation)))
+    (setf miss (remove phrase miss :test #'equal :count 1)
+          (gethash phrase dict) translation)))
 
 (defun add-translations (language &rest translations)
   "Add any number of TRANSLATIONS for the given LANGUAGE"
@@ -65,14 +84,10 @@ explicitly created. If no PHRASE is defined for a given language, it
 is stored for later translation and replaced by PHRASE surrunded by
 curly brackets."
   (check-type phrase string)
-  (if language
-      (let ((lang
-             (or (getf *translations* language)
-                 (progn (cerror "Create language."
-                                "Language ~A doesn't exist." language)
-                        (define-language language)
-                        (getf *translations* language)))))
-        (destructuring-bind (dictionary missing missing-fn) lang
+  (cond
+    ((null language) phrase)
+    (T (ensure-language language T)
+       (with-language language (dict missing missing-fn)
           (declare (ignore missing))
           (multiple-value-bind (result found?)
               (gethash phrase dictionary
@@ -81,8 +96,7 @@ curly brackets."
               (pushnew phrase (second lang) :test 'equal)
               (warn "Phrase \"~A\" isn't defined for language ~A."
                     phrase language))
-            result)))
-      phrase))
+            result)))))
 
 (set-dispatch-macro-character
  #\# #\t
