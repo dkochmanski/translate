@@ -11,6 +11,17 @@
   "Controlls translation resulution time - maybe be either :run-time
 or :load-time")
 
+ ;; utilities
+(defmacro with-language (name (dict miss m-fn) &body body)
+  "Conveniance macro which creates lexical invironment composed of
+  macro symbols which resolve to language list."
+  (let ((lang-entry (gensym)))
+    `(symbol-macrolet ((,lang-entry (getf *translations* ,name))
+                       (,dict (first  ,lang-entry))
+                       (,miss (second ,lang-entry))
+                       (,m-fn (third  ,lang-entry)))
+       ,@body)))
+
  ;; creation
 (defun define-language (name &rest translations)
   "Define language NAME with provided TRANSLATIONS
@@ -29,16 +40,6 @@ corresponding objects."
                   (concatenate 'string
                                "{" str "}"))))
   (apply #'add-translations name translations))
-
-(defmacro with-language (name (dict miss m-fn) &body body)
-  "Conveniance macro which creates lexical invironment composed of
-  macro symbols which resolve to language list."
-  (let ((lang-entry (gensym)))
-    `(symbol-macrolet ((,lang-entry (getf *translations* ,name))
-                       (,dict (first  ,lang-entry))
-                       (,miss (second ,lang-entry))
-                       (,m-fn (third  ,lang-entry)))
-       ,@body)))
 
 (defun ensure-language (name &optional cerror-p)
   "If NAME isn't NIL and language doesn't exist - define it. If
