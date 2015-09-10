@@ -28,7 +28,7 @@
    ordinary constant strings in his/her application, the user instead
    precedes them with =#t=:
 
-   #+BEGIN_SRC common-lisp
+   #+BEGIN_SRC lisp
      ==> #t"dum dum dum, piję rum"
      "la la la, I drink in the spa"
    #+END_SRC
@@ -41,8 +41,10 @@
    run-time while keeping application innards visually separated from
    the messages meant to be presented to user.
 
-   #+BEGIN_SRC common-lisp
+   #+BEGIN_SRC lisp
      ==> (setf translate:*language* nil)
+     NIL
+
      ==> (make-button :label #t"hello")
      #<button "hello">
    #+END_SRC
@@ -51,14 +53,17 @@
    translation. If no translation exists it will be temporarily
    translated to the same value enclosed in a curly brackets:
 
-   #+BEGIN_SRC common-lisp
+   #+BEGIN_SRC lisp
      ==> (translate:define-language :pl)
      (#<hash-table 00000000054323c0> NIL #<compiled-function 0000000005fe08c0>)
+
      ==> (setf translate:*language* :pl)
      :PL
+
      ==> (make-label :text #t"Greetings, programs")
      ;;; Warning: phrase "Greetings, programs" isn't defined for language :PL.
      #<label "{Greetings, programs}">
+
      ==> (make-label :text #t"Leave the grid")
      ;;; Warning: phrase "Leave the grid" isn't defined for language :PL.
      #<label "{Leave the grid}">
@@ -76,7 +81,7 @@
    convenient is using symbols as the language designators. It also
    implies, that phrases meant for translation are case sensitive.
 
-** Adding translation  
+** Adding translation
 
    To add translations, two interfaces are provided. The
    =ADD-SINGLE-TRANSLATION= function takes three arguments, where the
@@ -92,10 +97,12 @@
      ;;; Warning: Implicitly creating language PL.
      [PL] hello -> Witaj!
      "Witaj!"
+
      ==> (translate:add-single-translation 'en "hello" "Welcome!")
      ;;; Warning: Implicitly creating language EN.
      [EN] hello -> Welcome!
      "Welcome!"
+
      ==> (translate:add-single-translation
           'pl "bang"
           (let ((i 1))
@@ -104,7 +111,7 @@
      bang -> #<bytecompiled-closure #<bytecompiled-function 00000000067d9f50>> (PL)
      #<bytecompiled-closure #<bytecompiled-function 00000000067d9f50>>
    #+END_SRC
-   
+
    =ADD-TRANSLATIONS= is a simple wrapper around
    =ADD-SINGLE-TRANSLATION= that allows the translation of multiple
    phrases in one form. The first argument is once again the
@@ -124,6 +131,7 @@
      [PL] header-pricing -> Cennik
      [PL] header-contact -> Kontakt
      T
+
      ==> (translate:add-translations 'en
             "header-about"   "About"
             "header-offer"   "Offer"
@@ -152,7 +160,7 @@
    without translations, the function =MISSING-TRANSLATIONS= is
    available. It returns a list of the form ={((LANG (PHRASES*))*)}=.
 
-   #+BEGIN_SRC lisp 
+   #+BEGIN_SRC lisp
      ==> (missing-translations)
      ((PL ("phrase-1" "phrase-2" "phrase-3"))
       (BG ("phrase-1" "phrase-3")))
@@ -180,21 +188,27 @@
    calls and they may work not as expected in the context where
    enclosing macro prevents their evaluation.
 
-   #+BEGIN_SRC common-lisp
+   #+BEGIN_SRC lisp
      ==> (setf translate:*mode* :run-time)
      :RUN-TIME
+
      ==> (setf translate:*language* :en)
      :EN
+
      ==> (translate:add-single-translation :en "hello" "Hello")
      [EN] hello -> Hello
+
      ==> (translate:add-single-translation :pl "hello" "Cześć")
      [PL] hello -> Cześć
+
      ==> (let ((translate:*language* :en))
            #t"hello")
      "Hello"
+
      ==> (let ((translate:*language* :pl))
            #t"hello")
      "Cześć"
+
      ==> (quote #t"hello")
      (TRANSLATE:TRANSLATE "hello")
    #+END_SRC
@@ -205,32 +219,42 @@
    immediately. That also means that changing =TRANSLATE:*LANGUAGE*=
    in the future won't affect translations resolved earlier.
 
-   #+BEGIN_SRC common-lisp
+   #+BEGIN_SRC lisp
      ==> (setf translate:*mode* :load-time)
      :RUN-TIME
+
      ==> (setf translate:*language* :en)
      :EN
+
      ==> (defparameter *my-function-1*
            (lambda () #t"hello"))
      ;;; Warning: phrase "hello" isn't defined for language EN.
-     ,*MY-FUNCTION-1*
+     *MY-FUNCTION-1*
+
      ==> (translate:add-translation :en "hello" "Hello")
      hello -> Hello (EN)
+
      ==> (translate:add-translation :pl "hello" "Cześć")
      hello -> Cześć (PL)
+
      ==> (let ((*language* :en))
            #t"hello")
      "Hello"
+
      ==> (let ((*language* :pl))              ; lexical scope is ignored
            #t"hello")
      "Hello"
+
      ==> (defparameter *my-function-2*
            (lambda () #t"hello"))
      ,*MY-FUNCTION-2*
+
      ==> (funcall *my-function-1*) ; phrase wasn't translated when function was created
      "{hello}"
+
      ==> (funcall *my-function-2*)
      "Hello"
+
      ==> (quote #t"hello")
      "Hello"
    #+END_SRC
@@ -252,7 +276,7 @@
       used for comparison is EQL). If bound to NIL, translation works the
       same way as the IDENTITY function.
     #+END_SRC
-    
+
 *** =*RESOLUTION-TIME*=
     #+BEGIN_SRC text
       Applicable values are :LOAD-TIME and :RUN-TIME (the latter is the
