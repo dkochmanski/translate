@@ -2,7 +2,7 @@
 
 (asdf:defsystem #:translate
   :name "translate"
-  :version "0.1.0"
+  :version "0.1.1"
   :description "Abstraction layer for translations"
   :author "Daniel 'jackdaniel' Kochmański <daniel@turtleware.eu>"
   :license "LLGPLv2"
