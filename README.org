@@ -29,8 +29,8 @@
    precedes them with =#t=:
 
    #+BEGIN_SRC common-lisp
-     ==> #t"dum dum, piję rum"
-     "la la, I drink in the spa"
+     ==> #t"dum dum dum, piję rum"
+     "la la la, I drink in the spa"
    #+END_SRC
 
    If =TRANSLATE:*LANGUAGE*= is bound to =NIL= and
