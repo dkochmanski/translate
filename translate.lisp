@@ -15,9 +15,10 @@ or :load-time")
 (defun define-language (name &rest translations)
   "Define language NAME with provided TRANSLATIONS
 
-If LANGUAGE exists continuable error is signalled, which allows either
-dropping the operation or superseeding already defined language.
-TRANSLATIONS are alternatery phrases and their corresponding objects."
+If LANGUAGE exists, a continuable error is signalled, which allows
+either dropping the operation or superseding the language which is
+already defined. TRANSLATIONS are alternating phrases and their
+corresponding objects."
   (when (getf *translations* name)
     (cerror "Supersede language."
             "Language ~A is already defined." name))
@@ -32,8 +33,8 @@ TRANSLATIONS are alternatery phrases and their corresponding objects."
 (defun add-single-translation (language phrase translation)
   "Add TRANSLATION of PHRASE for given LANGUAGE
 
-If LANGUAGE doesn't exist it is implicitly created and the warning is
-emited."
+If LANGUAGE doesn't exist, it is implicitly created and a warning is
+emmited."
   (check-type phrase string)
   (let ((dict (car (or (getf *translations* language)
                        (progn
@@ -44,7 +45,7 @@ emited."
     (setf (gethash phrase dict) translation)))
 
 (defun add-translations (language &rest translations)
-  "Add any number of TRANSLATIONS for given LANGUAGE"
+  "Add any number of TRANSLATIONS for the given LANGUAGE"
   (do* ((tr translations (cddr tr)))
        ((endp tr) T)
     (destructuring-bind (phrase trans &rest ign) tr
@@ -53,12 +54,13 @@ emited."
 
  ;; resolution
 (defun translate (phrase &optional (language *language*))
-  "Find translation of PHRASE in the store associated with LANGUAGE
+  "Find the translation of PHRASE in the store associated with LANGUAGE
 
-If LANGUAGE is NIL, then this is the same as the IDENTITY function. If
-provided LANGUAGE isn't defined the store is explicitly created. If no
-PHRASE is defined for a given language, it is stored for later
-translation and replaced by PHRASE surrunded by curly brackets."
+If LANGUAGE is NIL, then this is the same as the the IDENTITY
+function. If the provided LANGUAGE isn't defined, the store is
+explicitly created. If no PHRASE is defined for a given language, it
+is stored for later translation and replaced by PHRASE surrunded by
+curly brackets."
   (check-type phrase string)
   (if language
       (let ((lang
@@ -91,8 +93,8 @@ translation and replaced by PHRASE surrunded by curly brackets."
 
  ;; missing translations
 (defun missing-translations ()
-  "Creates list of phrases which aren't translated for defined
-languages. Retruns list of form: ({(LANG ({PHRASE}*))}*)"
+  "Creates a list of phrases which aren't translated for the defined
+languages. Returns a list of form: ({(LANG ({PHRASE}*))}*)"
   (do* (acc
         (reminder *translations* (cddr reminder))
         (elt (second (cadr reminder))
