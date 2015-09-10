@@ -1,6 +1,11 @@
 
 (require 'rt)
-(in-package #:rt)
+(require 'translate)
+
+(defpackage #:translate/test
+  (:use #:cl #:rt))
+
+(in-package :translate/test)
 
  ;; translations when language is bound to NIL
 
