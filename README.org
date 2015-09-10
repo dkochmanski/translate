@@ -184,12 +184,12 @@
    parameter =TRANSLATE:*LANGUAGE*=.
 
    It is important to remember that, when translations are done at
-   run-time, strings preceded by =#t= are transformed to function
+   run-time, strings preceded by =#t= are transformed to the function
    calls and they may work not as expected in the context where
    enclosing macro prevents their evaluation.
 
    #+BEGIN_SRC lisp
-     ==> (setf translate:*mode* :run-time)
+     ==> (setf translate:*resolution-time* :run-time)
      :RUN-TIME
 
      ==> (setf translate:*language* :en)
@@ -220,7 +220,7 @@
    in the future won't affect translations resolved earlier.
 
    #+BEGIN_SRC lisp
-     ==> (setf translate:*mode* :load-time)
+     ==> (setf translate:*resolution-time* :load-time)
      :RUN-TIME
 
      ==> (setf translate:*language* :en)
@@ -247,7 +247,7 @@
 
      ==> (defparameter *my-function-2*
            (lambda () #t"hello"))
-     ,*MY-FUNCTION-2*
+     *MY-FUNCTION-2*
 
      ==> (funcall *my-function-1*) ; phrase wasn't translated when function was created
      "{hello}"
