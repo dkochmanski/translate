@@ -249,20 +249,19 @@
 *** =*LANGUAGE*=
     #+BEGIN_SRC text
       This variable holds the current language designator (the predicate
-      used for comparison is =EQL=). If bound to =NIL=, translation works
-      the same way as the =IDENTITY= function.
+      used for comparison is EQL). If bound to NIL, translation works the
+      same way as the IDENTITY function.
     #+END_SRC
     
 *** =*RESOLUTION-TIME*=
     #+BEGIN_SRC text
-      Applicable values are =:LOAD-TIME= and =:RUN-TIME= (the latter is the
+      Applicable values are :LOAD-TIME and :RUN-TIME (the latter is the
       default). The variable controls time of actual resolution.
 
-      If it's the =:LOAD-TIME=, then resolution is performed when the reader
-      encounters the =#t= dispatch macro character, while setting the
-      variable to =:RUN-TIME= translates =#t="string" to the form
-      =(TRANSLATE "string")= and resolution takes place at the time of the
-      form evaluation.
+      If it's the :LOAD-TIME, then resolution is performed when the reader
+      encounters the #t dispatch macro character, while setting the variable
+      to :RUN-TIME translates #t"string" to the form (TRANSLATE "string")
+      and resolution takes place at the time of the form evaluation.
     #+END_SRC
 
 ** Functions
